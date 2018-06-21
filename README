@@ -1,0 +1,86 @@
+////////////////////////////////////////////////////////////////////////////////////////////
+//   MatLib - A matrix multiplication and transpose library optimized with STL C++11 threads
+//     Author: Amber Rogowicz    June 13, 2018
+//           
+//
+
+
+BUILDING:
+    1. edit the makefile and uncomment the appropriate building flags for your platform
+		(this software was developed and tested on OSX 10.9
+	2. type make , you should end up with a running executable "matrix test"
+
+RUNNING:
+    1. matrix_test  with ANY parameters runs multi-threaded 
+                    executing without any command line arguments runs single threaded
+
+// 
+//   NeoMatrix Data Structure:
+//				Using the STL valarray class template provides numeric operations and 
+//              element access in the form of slices, an intuitive matrix row/column part
+//              of the matrix 
+//              Lets review the multiply operation of a matrix:
+//                  let m = number of rows in A 
+//                      n = number of columns in A  and number of rows in B
+//                      p = number of columns in B
+//                  then MatrixResult[mxp] = A * B
+//
+//              MatrixA[mxn] * MatrixB[nxp] = MatrixResult[mxp] 
+//    MatrixResult  | 1 ------> p |       A  | 1 -->n  |      B  | 1 ------> p  |
+//                  | .           |          | .    .  |         | .         .  |
+//                  | .        .  |    =     | .    .  |   *     | V         .  |
+//                  | V           |          | V    .  |`        | n         .  |
+//                  | m        .  |          | m    .  |        
+//
+// Non-threaded solution:
+//
+// NEOMX multiply(const NEOMX & matrixB) const
+// {
+//	assert(cols == matrixB.rows);   // becomes a no-op if invalid operation
+//	STDVA matrixResult(rows * matrixB.cols);
+//	for(size_t i = 0; i < rows; ++i)
+//	{
+//		for(size_t j = 0; j < matrixB.cols; ++j)
+//		{
+//			STDVA row = data[std::slice(i * cols, cols, 1)];
+//			STDVA col = matrixB.data[std::slice(j, m.rows, m.cols)];
+//			matrixResult[i * matrixB.cols + j] = (row * col).sum();
+//		}
+//	}
+//       // return a NeoMatrix instatiated with matrixResult data values
+//		return NEOMX(rows, m.cols, matrixResult);
+//
+// }
+//
+// Threaded solution:
+//    The number of threads should be a tuned variable for optimizing processing other 
+//    threading models considered ( e.g. thread pools )
+//    but is hardcoded to 4 to show proof of concept
+//    The multiply method should accept a designated block of the result matrix to work on and those 
+//    blocks divided up amongst the number of threads (with any remaining handed over to the last thread)
+//    The multiply method should handle block assignments with threads sharing equal work loads (distributive
+//    processing). 
+//
+//
+//  To simplify, the use of STL C++11 threads are employed
+// std::thread threads[NUM_THREADS];
+//
+//	for (int i = 0; i < NUM_THREADS; ++i) 
+//  {
+// 		//Initialize each thread with the function responsible of multiplying only a part of the matrices
+//      threads[i] = std::thread(multiply_threading, result, start_index, blocksize, m1, m2);
+//  }
+//   // then Regroup when threads have completed their job
+// for (int i = 0; i < NUM_THREADS; ++i) 
+// {
+//  threads[i].join();
+// }
+//
+// void multiply_block(valarray & result, const size_t startIdx, const size_t endIdx, const NeoMX& m1, const NeoMX& m2);
+//
+// the blocks will be split up by the number of result matrix rows divided by the the number of threads
+// Result[mxp] = NUM_ELEMENTS / NUM_THREADS = number of element indices  = BLOCK_SIZE 
+// so threads 1-NUM_THREADS will do block indices [ THREAD_IDX * BLOCK_SIZE ] += BLOCK_SIZE (+ remainder for last thread)kjjj
+// Result matricies with rows < total number of threads are handed off to the single threading method
+//
+// A straightforward Transpose method has also been made availble
