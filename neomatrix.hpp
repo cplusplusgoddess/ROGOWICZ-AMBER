@@ -54,7 +54,8 @@ namespace neolib
 	static int _num_threads = 1;
 	static int _finished_threads = 0;
 
-	template <typename T = double> class NeoMatrix
+	template <typename T = double > 
+	class NeoMatrix
 	{
 	    using VA_DATA = std::valarray<T>;
 		using NEOMX = NeoMatrix<T>;
@@ -63,16 +64,15 @@ namespace neolib
 		
 		size_t           rows;
 		size_t           cols;
-	    std::valarray<T> data;
+	    VA_DATA			 data;
 		
 		public:
 
-		void swap(NEOMX & x, NEOMX & y)
+		void swap(NeoMatrix && a , NeoMatrix && b )
 		{
-			using std::swap;
-			swap(x.rows, y.rows);
-			swap(x.cols, y.cols);
-			swap(x.data, y.data);
+			NeoMatrix tmp(a);             // move ctor
+			a     	  = b ;             // call MOVE assignment point a to b's data
+			b		  = tmp ;           // point b to a's old data
 		}
 		
 		//   Constructors 
@@ -103,13 +103,13 @@ namespace neolib
 		}
 		
 		// Initialize matrix data with an array of doubles calling default constructor 1st
-		NeoMatrix(const size_t & r, const size_t & c, const T * d): NEOMX(r, c)
+		NeoMatrix(const size_t & r, const size_t & c, const T * d): NeoMatrix(r, c)
 		{
 			for(size_t i = 0; i < rows * cols; ++i) 
 				data[i] = d[i];
 		}
 		
-		NeoMatrix(const size_t & r, const size_t & c, const T ** d): NEOMX(r, c)
+		NeoMatrix(const size_t & r, const size_t & c, const T ** d): NeoMatrix(r, c)
 		{
 			size_t k = 0;
 			for(size_t i = 0; i < rows; ++i)
@@ -117,6 +117,9 @@ namespace neolib
 					data[k++] = d[i][j];
 		}
 		
+		// cors using initializer_lists of the form  Matrix A = { 2.0 , 3.0, 4.0 };
+		//                                      or   Matrix A = { {2.0 , 3.0, 4.0 },
+		//													 	  { 1.3, 4.7, 1.3 }} 
 		NeoMatrix(std::initializer_list<T> l): rows(1), cols(l.size()), data(l)
 		{
 		}
@@ -131,12 +134,37 @@ namespace neolib
 			}
 		}
 		
-		//   MOVE Constructor
+		//   MOVE Constructors
 		
-		NeoMatrix(NEOMX && m): NEOMX()
+		NeoMatrix(NEOMX && other): rows(other.rows), cols(other.cols)
 		{
-			swap(*this, m);
+			if (other.data.size()==0) 
+			{
+				rows= 0;
+				cols= 0;
+			}
+			data = std::move(other.data);
 		}
+		explicit NeoMatrix( size_t r, size_t c, VA_DATA && v): rows(r), cols(c)
+		{
+			data = std::move(v);
+			std::cout << "in move constructor ...\n\n";
+		}
+
+		// MOVE Assignment
+		NEOMX & operator=(NEOMX && other)
+		{
+			
+			if (this == &other) 
+				return *this;
+			rows = other.rows;
+			cols = other.cols;
+			// free the existing data of *this ?
+			data = std::move(other.data);
+		  //	other.data = nullptr;
+			return *this;
+		}
+		
 				
 		//COPY Constructor
 		
@@ -146,25 +174,20 @@ namespace neolib
 		
 		//  ASSIGNMENT Constructor
 		
-		NEOMX & operator=(NEOMX m)
+		NEOMX & operator=(const NEOMX m)
 		{
-			swap(*this, m);
+		    rows = m.rows; 
+			cols = m.cols; 
+			data = m.data;
 			return *this;
 		}
 
-		NEOMX & operator=(NEOMX & m)
-		{
-			swap(*this, m);
-			return *this;
-		}
-		
-		
 		// Operators
 		
 		NEOMX & operator=(const T & n)
 		{
 			NEOMX m(rows, cols, VA_DATA(n, rows * cols));
-			swap(*this, m);
+			*this   =  m;
 			return *this;
 		}
 		
@@ -450,7 +473,7 @@ namespace neolib
 				threads[thread_idx].join();
   			}
 
-			return NEOMX(rows, m.cols, result);
+			return NEOMX(rows, m.cols, std::move(result));
        
         } 
 
@@ -460,7 +483,8 @@ namespace neolib
        // multiply - for single thread case
        //            stack savings at the cost of time 
 
-		NEOMX multiply(const NEOMX & m) const
+		//NEOMX multiply(const NEOMX & m) const
+		NEOMX  multiply(const NEOMX & m) const
 		{
 			// becomes a no-op if invalid operation
 			assert(cols == m.rows); 
@@ -475,7 +499,8 @@ namespace neolib
 					result[i * m.cols + j] = (row * col).sum();
 				}
 			}
-			return NEOMX(rows, m.cols, result);
+			return NEOMX(rows, m.cols, std::move(result));
+			// return NEOMX(rows, m.cols, result);
 		}
 
 		public:
@@ -496,8 +521,9 @@ namespace neolib
 		NEOMX & operator*=(const NEOMX & m)
 		{
 			assert(cols == m.rows);
-			NEOMX product = (*this) * m;
-			swap(product, *this);
+			NEOMX &&product = (*this) * m;
+			*this = product ; //std::move( product );
+			//swap(product, *this);
 			return *this;
 		}
 
@@ -611,6 +637,7 @@ namespace neolib
 	template class NeoMatrix<bool>;
 	
 	
+	//using Matrix = NEOMX;    //NeoMatrix<>;
 	using Matrix = NeoMatrix<>;
 
 }  // end namespace neolib
