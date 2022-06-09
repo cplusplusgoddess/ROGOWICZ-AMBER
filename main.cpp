@@ -1,27 +1,53 @@
+// ####################################################
+// Author: 	Amber Rogowicz
+// File	:	main.cpp   test main for using neomatrix 
+// Date:	Oct 2019
 
 #include <iostream>
 #include <chrono>
 #include "neomatrix.hpp"
 
 
+using namespace neolib;
 
-using namespace matlib;
+static void show_usage(std::string name)
+{
+    std::cerr << "Usage: " << name << "  | -h | # | [ANY GARBAGE]\n"
+              << "\t-h,--help\t\tShow this help message\n"
+              << "\t WITH NO PARAMETERS \t\t means run default threaded \n"
+              << "\t # \t\t\t = run with the Maximum NUMBER_OF_THREADS > 1\n"
+              << "\t [ANY GARBAGE]\t\t  = run with the default NUMBER_OF_THREADS = 4\n"
+              << std::endl;
+}
 
 // if main receives ANY arguments, its assumed the user wants to 
-// run matrix multiplication with threading 
-
-// const int MAX_THREADS = 4;   // hardcoding for simplicity
+// run matrix multiplication with the given amount of threads.
+// NOTE: not exceeding the number of processing cores
 
 int main(int argc, char *argv[]) 
 {
     if (argc > 1) 
 	{
-	  size_t MAX_THREADS = std::thread::hardware_concurrency();
-
-	  size_t user_num_threads = atoi(argv[1]);
-	  std::cout << "The number of available processing cores: " << MAX_THREADS << std::endl;
-      matlib::initMatLib(user_num_threads<=MAX_THREADS?user_num_threads:MAX_THREADS);
-	  std::cout << "Running multi-threaded...\n\n";
+    	std::string arg  = argv[1];
+        if ((arg == "-h") || (arg == "--help")) 
+		{
+            // user  is asking for help to run the program
+            show_usage(argv[0]);
+            return(1);
+    	}
+		try {
+	  		// How many processing cores are available?
+            size_t user_num_threads = std::stoi(arg);
+	  		size_t MAX_THREADS = std::thread::hardware_concurrency();
+	  		std::cout << "The number of available processing cores: " << MAX_THREADS << std::endl;
+	  		// Choose the number of threads based on user choice and core presence
+      		neolib::initMatLib(user_num_threads<=MAX_THREADS?user_num_threads:MAX_THREADS);
+	  		std::cout << "Running multi-threaded...\n\n";
+		} catch(...){
+        	// Number of threads in command line arguments is not parsable
+            show_usage(argv[0]);
+            return(1);
+    	} 
     } else 
 	  std::cout << "Running single threaded...\n\n";
 
@@ -73,6 +99,7 @@ int main(int argc, char *argv[])
 	std::cout << "Matricies: A * B * C * D * E * F * G * H * I initialized randomly [-1.0 -> 1.0]\n\n";
     auto start_time = std::chrono::high_resolution_clock::now();
 	Matrix aiResult = A * B * C * D * E * F * G * H * I;
+	// Time the processing of the last compound matrix multiply statement
 	auto processing_time = std::chrono::high_resolution_clock::now() - start_time;
 	std::cout << aiResult << std::endl;
 	// std::cout << aiResult.transpose();

@@ -1,32 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
-//   NeoLib - A matrix multiplication and transpose library optimized with STL C++11 threads
-//     Author: Amber Rogowicz    July 2018
+//   MatLib - A matrix multiplication and transpose library optimized with STL C++11 threads
+//     Author: Amber Rogowicz    June 13, 2018
 //           
-//	Running matrix_test:		: Usage: matrix_test  | -h | # | [ANY GARBAGE]
-//			-h,--help	 		- Show this help message
-//			 WITH NO PARAMETERS	- means run single threaded 
-//			 # 			 		- run with the Maximum NUMBER_OF_THREADS > 1
-//		 	[ANY GARBAGE]		- run with the default NUMBER_OF_THREADS = 4
-// 
-//------------------------------------------------------------------------------------------
-//	The Interface †o NeoLib:
-//
-//		Namespace of NeoLib		: "using namespace neolib"
-//		Initializing threading	: initMatLib( int maxThreadCount) ; Runs the library operations threaded with maxThreadCount
-//																	or single threaded if maxThreadCount <= 1
-//																	NOTE: can be called anytime throughout execution
-//		NeoMatrix class			: "Matrix" declaration/instantiation
-//		Initialization or fill	: initialize_random() Method random init data of a Matrix distribution range 0.0-9.9
-//                 				: Matrix A[4][2]  = 1.4; - Inits all data elements to 1.4
-//      Init Constructor		: Matrix(const std::vector<std::vector<T>> & v): Init matrix data with a std::vector 
-//      initializer_list		: Matrix A =  { {2.0 , 3.0, 4.0 },
-//												{ 1.3, 4.7, 1.3 }} ; inits A[2][3]
-//		Multiply 				: "*" operator of 2 or more instantiated Matrix 
-//		         				: "*=" operator of an instantiated Matrix 
-//		Transpose				: transpose() method of a Matrix
-//		Error Handling			: Currently exits application with an assert() failure
-//
-//  ------------------------- Nitty Gritty ---------------------------
 //   NeoMatrix Data Structure:
 //				Using the STL valarray class template provides numeric operations and 
 //              element access in the form of slices, an intuitive matrix row/column part
@@ -65,31 +40,32 @@
 // }
 //
 // Threaded solution:
-//    The number of threads is a command line tuning parameter (defaulted to 4 
-//    The multiply() method accepts a designated block of the result matrix to work on and those 
+//    The number of threads should be a tuning variable and thread pools should be considered
+//    here for optimization but is hardcoded to 4 to show proof of concept
+//    The multiply method should accept a designated block of the result matrix to work on and those 
 //    blocks divided up amongst the number of threads (with any remaining handed over to the last thread)
 //    The multiply method should handle block assignments with threads sharing equal work loads (distributive
 //    processing). 
 //
 //
-//  To simplify, the use of STL C++11 threads are employed and contained in a vector array
-//  std::thread threads[NUM_THREADS];
+//  To simplify, the use of STL C++11 threads are employed
+// std::thread threads[NUM_THREADS];
 //
 //	for (int i = 0; i < NUM_THREADS; ++i) 
 //  {
 // 		//Initialize each thread with the function responsible of multiplying only a part of the matrices
-//      threads[i] = std::thread(multiply_block, &resultMatrix, startRow, numRows, &matrix1, &matrix2);
+//      threads[i] = std::thread(multiply_threading, r, i, m1, m2);
 //  }
 
 // for (int i = 0; i < NUM_THREADS; ++i) 
 // {
-//   // Regroup when threads have completed their job
+//   // Regroup when threads have 
 //  threads[i].join();
 // }
 //
 // void multiply_block(valarray & result, const size_t startIdx, const size_t endIdx, const NeoMX& m1, const NeoMX& m2);
+
 // the blocks will be split up by the number of result matrix rows divided by the the number of threads
 // Result[mxp] = NUM_ELEMENTS / NUM_THREADS = number of element indices  = BLOCK_SIZE 
 // so threads 1-NUM_THREADS will do block indices [ THREAD_IDX * BLOCK_SIZE ] += BLOCK_SIZE (+ remainder for last thread)kjjj
-//
-//
+

@@ -1,5 +1,5 @@
 # NeoMatrix
-Matrix Template for Multiplication and Transpose with optional multi-thread processing as a solution to the following challege:
+Matrix Template for Multiplication and Transpose with optional multi-thread processing as a solution to the following challenge:
 
 Code Sample - Matrix Multiplication and Transposition
 
