@@ -1,35 +1,15 @@
 //--------------------------------------------------------------------------------
 // 
-// FILE:	neomatrix.hpp
-// AUTHOR:	Amber Rogowicz
-// DATE:	July 2018
-//
-//------------------------------------------------------------------------------------------
-//	The Interface †o NeoLib:
-//
-//		Namespace of NeoLib		: "using namespace neolib"
-//		Initializing threading	: initMatLib( int maxThreadCount) ; Runs the library operations threaded with maxThreadCount
-//																	or single threaded if maxThreadCount <= 1
-//																	NOTE: can be called anytime throughout execution
-//		NeoMatrix class			: "Matrix" declaration/instantiation
-//		Initialization or fill	: initialize_random() Method random init data of a Matrix distribution range 0.0-9.9
-//                 				: Matrix A[4][2]  = 1.4; - Inits all data elements to 1.4
-//      Init Constructor		: Matrix(const std::vector<std::vector<T>> & v): Init matrix data with a std::vector 
-//      initializer_list		: Matrix A =  { {2.0 , 3.0, 4.0 },
-//												{ 1.3, 4.7, 1.3 }} ; inits A[2][3]
-//		Multiply 				: "*" operator of 2 or more instantiated Matrix 
-//		         				: "*=" operator of an instantiated Matrix 
-//		Transpose				: transpose() method of a Matrix
-//		Error Handling			: Currently exits application with an assert() failure
-//
-//       Defines a template NeoMatrix class created using the STL std::valarray 
-// 
+// NeoMatrix
+//       Is a Matrix class created using the STL std::valarray 
 //		 which implements methods:
 //			Matrix Multiplication  - ResultMatrix(MxP) = MatrixA(MxN) * MatrixB{NxP)
 //          Matrix Transpose       - Matrix(NxM)       = Matrix(MxN)
 //       STL std::threads are used to speed up the Matrix Multiplication
 //
 //--------------------------------------------------------------------------------
+
+// neomatrix.hpp
 
 #ifndef NEOMATRIX_HPP
 #define NEOMATRIX_HPP
@@ -47,15 +27,17 @@
 #include <thread>
 #include <unistd.h>
 
-namespace neolib
+#define MATLIB_ALIGN(a) __attribute__((aligned(a)))
+#define MATLIB_ENSURE_INLINE __attribute__((always_inline))
+
+namespace matlib
 {
 
 
 	static int _num_threads = 1;
 	static int _finished_threads = 0;
 
-	template <typename T = double > 
-	class NeoMatrix
+	template <typename T = double> class NeoMatrix
 	{
 	    using VA_DATA = std::valarray<T>;
 		using NEOMX = NeoMatrix<T>;
@@ -64,15 +46,16 @@ namespace neolib
 		
 		size_t           rows;
 		size_t           cols;
-	    VA_DATA			 data;
+	    std::valarray<T> data;
 		
 		public:
 
-		void swap(NeoMatrix && a , NeoMatrix && b )
+		void swap(NEOMX & x, NEOMX & y)
 		{
-			NeoMatrix tmp(a);             // move ctor
-			a     	  = b ;             // call MOVE assignment point a to b's data
-			b		  = tmp ;           // point b to a's old data
+			using std::swap;
+			swap(x.rows, y.rows);
+			swap(x.cols, y.cols);
+			swap(x.data, y.data);
 		}
 		
 		//   Constructors 
@@ -103,13 +86,13 @@ namespace neolib
 		}
 		
 		// Initialize matrix data with an array of doubles calling default constructor 1st
-		NeoMatrix(const size_t & r, const size_t & c, const T * d): NeoMatrix(r, c)
+		NeoMatrix(const size_t & r, const size_t & c, const T * d): NEOMX(r, c)
 		{
 			for(size_t i = 0; i < rows * cols; ++i) 
 				data[i] = d[i];
 		}
 		
-		NeoMatrix(const size_t & r, const size_t & c, const T ** d): NeoMatrix(r, c)
+		NeoMatrix(const size_t & r, const size_t & c, const T ** d): NEOMX(r, c)
 		{
 			size_t k = 0;
 			for(size_t i = 0; i < rows; ++i)
@@ -117,9 +100,6 @@ namespace neolib
 					data[k++] = d[i][j];
 		}
 		
-		// cors using initializer_lists of the form  Matrix A = { 2.0 , 3.0, 4.0 };
-		//                                      or   Matrix A = { {2.0 , 3.0, 4.0 },
-		//													 	  { 1.3, 4.7, 1.3 }} 
 		NeoMatrix(std::initializer_list<T> l): rows(1), cols(l.size()), data(l)
 		{
 		}
@@ -134,37 +114,12 @@ namespace neolib
 			}
 		}
 		
-		//   MOVE Constructors
+		//   MOVE Constructor
 		
-		NeoMatrix(NEOMX && other): rows(other.rows), cols(other.cols)
+		NeoMatrix(NEOMX && m): NEOMX()
 		{
-			if (other.data.size()==0) 
-			{
-				rows= 0;
-				cols= 0;
-			}
-			data = std::move(other.data);
+			swap(*this, m);
 		}
-		explicit NeoMatrix( size_t r, size_t c, VA_DATA && v): rows(r), cols(c)
-		{
-			data = std::move(v);
-			std::cout << "in move constructor ...\n\n";
-		}
-
-		// MOVE Assignment
-		NEOMX & operator=(NEOMX && other)
-		{
-			
-			if (this == &other) 
-				return *this;
-			rows = other.rows;
-			cols = other.cols;
-			// free the existing data of *this ?
-			data = std::move(other.data);
-		  //	other.data = nullptr;
-			return *this;
-		}
-		
 				
 		//COPY Constructor
 		
@@ -174,20 +129,25 @@ namespace neolib
 		
 		//  ASSIGNMENT Constructor
 		
-		NEOMX & operator=(const NEOMX m)
+		NEOMX & operator=(NEOMX m)
 		{
-		    rows = m.rows; 
-			cols = m.cols; 
-			data = m.data;
+			swap(*this, m);
 			return *this;
 		}
 
+		NEOMX & operator=(NEOMX & m)
+		{
+			swap(*this, m);
+			return *this;
+		}
+		
+		
 		// Operators
 		
 		NEOMX & operator=(const T & n)
 		{
 			NEOMX m(rows, cols, VA_DATA(n, rows * cols));
-			*this   =  m;
+			swap(*this, m);
 			return *this;
 		}
 		
@@ -414,7 +374,9 @@ namespace neolib
 		// 
 		// multiplyBlock is the portion of one thread's work for the solution to be placed into
 		//  param result
-		static void multiplyBlock(VA_DATA & result, const int start_row, const int num_rows, const NEOMX & m1, const NEOMX & m2) 
+		static void multiplyBlock(VA_DATA & result, 
+								  const int start_row, const int num_rows, 
+								  const NEOMX & m1,    const NEOMX & m2) 
 		{
         	const int end_row = start_row + num_rows;
 			for(auto i = start_row; i < end_row; ++i)
@@ -429,7 +391,7 @@ namespace neolib
 			return ;
 		}
 
-		private:
+
 		////////////////////////////////////////////////////////////////////////////////
         // overlapped processing of the Matrix Multiply using std::thread ( built on posix)
         // Compute the number of rows for each thread to handle computing for the 
@@ -473,7 +435,7 @@ namespace neolib
 				threads[thread_idx].join();
   			}
 
-			return NEOMX(rows, m.cols, std::move(result));
+			return NEOMX(rows, m.cols, result);
        
         } 
 
@@ -481,10 +443,8 @@ namespace neolib
 
        ////////////////////////////////////////////////////
        // multiply - for single thread case
-       //            stack savings at the cost of time 
 
-		//NEOMX multiply(const NEOMX & m) const
-		NEOMX  multiply(const NEOMX & m) const
+		NEOMX multiply(const NEOMX & m) const
 		{
 			// becomes a no-op if invalid operation
 			assert(cols == m.rows); 
@@ -496,14 +456,13 @@ namespace neolib
 				{
 					VA_DATA row = data[std::slice(i * cols, cols, 1)];
 					VA_DATA col = m.data[std::slice(j, m.rows, m.cols)];
-					result[i * m.cols + j] = (row * col).sum();
+					// result[i * m.cols + j] = (row * col).sum();
+					result[i * m.cols + j] = row * col;
 				}
 			}
-			return NEOMX(rows, m.cols, std::move(result));
-			// return NEOMX(rows, m.cols, result);
+			return NEOMX(rows, m.cols, result);
 		}
 
-		public:
         ///////////////////////////////////////////////
         // the multiply operator decides whether to thread 
         // based on the threading flag _num_threads and
@@ -521,12 +480,10 @@ namespace neolib
 		NEOMX & operator*=(const NEOMX & m)
 		{
 			assert(cols == m.rows);
-			NEOMX &&product = (*this) * m;
-			*this = product ; //std::move( product );
-			//swap(product, *this);
+			NEOMX product = (*this) * m;
+			swap(product, *this);
 			return *this;
 		}
-
 		///////////////////////////////////////////
         // transpose() swap the rows and columns
         // of this matrix
@@ -539,19 +496,20 @@ namespace neolib
 		}
 		
 		
-		// Method to initialize the data of a matrix randomly within a distribution range of 0.0-9.9
+		// Methods
+		
 		void initialize_random() 
 		{
     		std::random_device rd;
     		std::mt19937 mt(rd());
-    		std::uniform_real_distribution<double> dist(0.0, 9.9);
+    		std::uniform_real_distribution<double> dist(-1.0, 1.0);
     		auto random = std::bind(dist, mt);
     		for (int i = 0; i < rows*cols; ++i) 
 			{
         		data[i] = random();
       		}
     	}
-        // various public access methods
+
 		size_t getNumRows() const
 		{
 			return rows;
@@ -575,7 +533,6 @@ namespace neolib
 			data.resize(0);
 		}
 		
-        //  TODO: apply the appropriate function to a matrix
 		NEOMX apply(T func(const T &))
 		{
 			return NEOMX(rows, cols, data.apply(func));
@@ -613,7 +570,7 @@ namespace neolib
 			os.flush();
 		}
 	
-	}; // end NeoMatrix template definition
+	}; // end NeoMatrix class definition
 
 	template <typename T> std::ostream & operator<<(std::ostream & os, const NeoMatrix<T> & matrix)
 	{
@@ -623,8 +580,9 @@ namespace neolib
 
 	static void initMatLib( const int thread_count)
     {
+        // if thread_count > 1 we are multithreading our matrix multiply 
 		_num_threads = thread_count ;
-		// TODO: set matrix multiply function instead of testing thread flag each time
+		// TODO: set matrix multiply function instead of testing threaded flag each time
     }
 
 	template class NeoMatrix<double>;
@@ -637,9 +595,8 @@ namespace neolib
 	template class NeoMatrix<bool>;
 	
 	
-	//using Matrix = NEOMX;    //NeoMatrix<>;
 	using Matrix = NeoMatrix<>;
 
-}  // end namespace neolib
+}  // end namespace matlib
 
 #endif // #ifndef NEOMATRIX_HPP
