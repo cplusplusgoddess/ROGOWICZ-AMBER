@@ -14,9 +14,8 @@ static void show_usage(std::string name)
 {
     std::cerr << "Usage: " << name << "  | -h | # | [ANY GARBAGE]\n"
               << "\t-h,--help\t\tShow this help message\n"
-              << "\t WITH NO PARAMETERS \t\t means run default threaded \n"
-              << "\t # \t\t\t = run with the Maximum NUMBER_OF_THREADS > 1\n"
-              << "\t [ANY GARBAGE]\t\t  = run with the default NUMBER_OF_THREADS = 4\n"
+              << "\t WITH NO PARAMETERS \t\t means run single threaded \n"
+              << "\t #\t\t = run with the specified  NUMBER_OF_THREADS <= number of processing cores\n"
               << std::endl;
 }
 
