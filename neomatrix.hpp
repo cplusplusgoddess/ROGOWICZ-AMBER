@@ -1,3 +1,27 @@
+// FILE:	neomatrix.hpp
+// AUTHOR:	Amber Rogowicz
+// DATE:	July 2018
+//
+//------------------------------------------------------------------------------------------
+//	The Interface †o NeoLib:
+//
+//		Namespace of NeoLib		: "using namespace neolib"
+//		Initializing threading	: initMatLib( int maxThreadCount) ; Runs the library operations threaded with maxThreadCount
+//																	or single threaded if maxThreadCount <= 1
+//																	NOTE: can be called anytime throughout execution
+//		NeoMatrix class			: "Matrix" declaration/instantiation
+//		Initialization or fill	: initialize_random() Method random init data of a Matrix distribution range 0.0-9.9
+//                 				: Matrix A[4][2]  = 1.4; - Inits all data elements to 1.4
+//      Init Constructor		: Matrix(const std::vector<std::vector<T>> & v): Init matrix data with a std::vector 
+//      initializer_list		: Matrix A =  { {2.0 , 3.0, 4.0 },
+//												{ 1.3, 4.7, 1.3 }} ; inits A[2][3]
+//		Multiply 				: "*" operator of 2 or more instantiated Matrix 
+//		         				: "*=" operator of an instantiated Matrix 
+//		Transpose				: transpose() method of a Matrix
+//		Error Handling			: Currently exits application with an assert() failure
+//
+//       Defines a template NeoMatrix class created using the STL std::valarray 
+// 
 //--------------------------------------------------------------------------------
 // 
 // NeoMatrix
